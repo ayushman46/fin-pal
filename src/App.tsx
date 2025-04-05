@@ -8,6 +8,8 @@ import { AppLayout } from "./components/layout/AppLayout";
 import { ThemeProvider } from "@/components/theme/ThemeProvider";
 import { SavingsProvider } from "@/components/savings/SavingsContext";
 import { TransactionsProvider } from "@/components/transactions/TransactionsContext";
+import { useEffect } from "react";
+import { toast } from "sonner";
 
 // Pages
 import LoginPage from "./pages/LoginPage";
@@ -19,37 +21,53 @@ import ChatPage from "./pages/ChatPage";
 import SettingsPage from "./pages/SettingsPage";
 import NotFound from "./pages/NotFound";
 import ProfilePage from "./pages/ProfilePage";
+import { UserProvider } from "./components/auth/UserContext";
 
 const queryClient = new QueryClient();
 
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <ThemeProvider defaultTheme="dark">
-      <SavingsProvider>
-        <TransactionsProvider>
-          <TooltipProvider>
-            <Toaster />
-            <Sonner />
-            <BrowserRouter>
-              <Routes>
-                <Route path="/" element={<LoginPage />} />
-                <Route element={<AppLayout />}>
-                  <Route path="dashboard" element={<DashboardPage />} />
-                  <Route path="transactions" element={<TransactionsPage />} />
-                  <Route path="savings" element={<SavingsPage />} />
-                  <Route path="insights" element={<InsightsPage />} />
-                  <Route path="chat" element={<ChatPage />} />
-                  <Route path="settings" element={<SettingsPage />} />
-                  <Route path="profile" element={<ProfilePage />} />
-                </Route>
-                <Route path="*" element={<NotFound />} />
-              </Routes>
-            </BrowserRouter>
-          </TooltipProvider>
-        </TransactionsProvider>
-      </SavingsProvider>
-    </ThemeProvider>
-  </QueryClientProvider>
-);
+const App = () => {
+  // Handle Supabase authentication events
+  useEffect(() => {
+    // Check for login status or auth token existence
+    const authToken = localStorage.getItem('authToken');
+    const user = localStorage.getItem('user');
+    
+    if (authToken && user) {
+      toast.success("Welcome back to Fin Pal!");
+    }
+  }, []);
+  
+  return (
+    <QueryClientProvider client={queryClient}>
+      <ThemeProvider defaultTheme="dark">
+        <UserProvider>
+          <SavingsProvider>
+            <TransactionsProvider>
+              <TooltipProvider>
+                <Toaster />
+                <Sonner />
+                <BrowserRouter>
+                  <Routes>
+                    <Route path="/" element={<LoginPage />} />
+                    <Route element={<AppLayout />}>
+                      <Route path="dashboard" element={<DashboardPage />} />
+                      <Route path="transactions" element={<TransactionsPage />} />
+                      <Route path="savings" element={<SavingsPage />} />
+                      <Route path="insights" element={<InsightsPage />} />
+                      <Route path="chat" element={<ChatPage />} />
+                      <Route path="settings" element={<SettingsPage />} />
+                      <Route path="profile" element={<ProfilePage />} />
+                    </Route>
+                    <Route path="*" element={<NotFound />} />
+                  </Routes>
+                </BrowserRouter>
+              </TooltipProvider>
+            </TransactionsProvider>
+          </SavingsProvider>
+        </UserProvider>
+      </ThemeProvider>
+    </QueryClientProvider>
+  );
+};
 
 export default App;

@@ -11,12 +11,13 @@ import {
 import { useNavigate } from "react-router-dom";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { LogOut, Settings, User } from "lucide-react";
-import { mockUser, authService } from "@/lib/data";
 import { toast } from "sonner";
+import { useUser } from "./UserContext";
+import { authService } from "@/lib/data";
 
 export function UserMenu() {
   const navigate = useNavigate();
-  const user = mockUser;
+  const { user } = useUser();
 
   const handleLogout = async () => {
     await authService.logout();

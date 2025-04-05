@@ -1,103 +1,72 @@
 
 import { useState } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { 
-  Select, 
-  SelectContent, 
-  SelectItem, 
-  SelectTrigger, 
-  SelectValue 
-} from "@/components/ui/select";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Plus } from "lucide-react";
 import { toast } from "sonner";
-import { TransactionCategory, TransactionType } from "@/lib/data";
-import { useNavigate } from "react-router-dom";
+import { useTransactions } from "./TransactionsContext";
 
-type AddTransactionDialogProps = {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  onAddTransaction: (transaction: {
-    description: string;
-    amount: number;
-    category: TransactionCategory;
-    type: TransactionType;
-  }) => void;
-};
-
-export function AddTransactionDialog({ open, onOpenChange, onAddTransaction }: AddTransactionDialogProps) {
+export function AddTransactionDialog() {
+  const { addTransaction } = useTransactions();
+  const [open, setOpen] = useState(false);
   const [description, setDescription] = useState("");
   const [amount, setAmount] = useState("");
-  const [category, setCategory] = useState<TransactionCategory>("other");
-  const [type, setType] = useState<TransactionType>("want");
-  const [isExpense, setIsExpense] = useState(true);
-  const navigate = useNavigate();
+  const [category, setCategory] = useState("food");
+  const [type, setType] = useState<"income" | "expense">("expense");
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    const parsedAmount = parseFloat(amount);
-    
-    if (!description || isNaN(parsedAmount) || parsedAmount <= 0) {
-      toast.error("Please fill in all fields correctly");
+    if (!description || !amount) {
+      toast.error("Please fill in all required fields");
       return;
     }
     
-    onAddTransaction({
+    const parsedAmount = parseFloat(amount);
+    if (isNaN(parsedAmount) || parsedAmount <= 0) {
+      toast.error("Please enter a valid amount");
+      return;
+    }
+    
+    addTransaction({
       description,
-      amount: isExpense ? -parsedAmount : parsedAmount,
-      category,
-      type,
+      amount: parsedAmount,
+      category: category as any,
+      type: type
     });
     
     // Reset form
     setDescription("");
     setAmount("");
-    setCategory("other");
-    setType("want");
-    setIsExpense(true);
+    setCategory("food");
+    setType("expense");
+    setOpen(false);
     
-    onOpenChange(false);
     toast.success("Transaction added successfully!");
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button>
+          <Plus className="mr-2 h-4 w-4" /> Add Transaction
+        </Button>
+      </DialogTrigger>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle>Add New Transaction</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4 py-4">
           <div className="space-y-2">
-            <Label htmlFor="transaction-type">Transaction Type</Label>
-            <div className="flex gap-2">
-              <Button
-                type="button"
-                variant={isExpense ? "default" : "outline"}
-                className="flex-1"
-                onClick={() => setIsExpense(true)}
-              >
-                Expense
-              </Button>
-              <Button
-                type="button"
-                variant={!isExpense ? "default" : "outline"}
-                className="flex-1"
-                onClick={() => setIsExpense(false)}
-              >
-                Income
-              </Button>
-            </div>
-          </div>
-          
-          <div className="space-y-2">
             <Label htmlFor="description">Description</Label>
             <Input 
               id="description" 
               value={description} 
               onChange={(e) => setDescription(e.target.value)}
-              placeholder="e.g., Grocery shopping" 
+              placeholder="e.g., Groceries" 
               required
             />
           </div>
@@ -117,48 +86,49 @@ export function AddTransactionDialog({ open, onOpenChange, onAddTransaction }: A
           </div>
           
           <div className="space-y-2">
-            <Label htmlFor="category">Category</Label>
+            <Label htmlFor="type">Type</Label>
             <Select 
-              value={category}
-              onValueChange={(value) => setCategory(value as TransactionCategory)}
+              value={type} 
+              onValueChange={(value) => setType(value as "income" | "expense")}
             >
-              <SelectTrigger id="category">
-                <SelectValue placeholder="Select category" />
+              <SelectTrigger id="type">
+                <SelectValue placeholder="Select type" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="food">Food</SelectItem>
-                <SelectItem value="shopping">Shopping</SelectItem>
-                <SelectItem value="transport">Transport</SelectItem>
-                <SelectItem value="entertainment">Entertainment</SelectItem>
-                <SelectItem value="utilities">Utilities</SelectItem>
-                <SelectItem value="rent">Rent</SelectItem>
-                <SelectItem value="groceries">Groceries</SelectItem>
-                <SelectItem value="health">Health</SelectItem>
-                <SelectItem value="education">Education</SelectItem>
-                <SelectItem value="other">Other</SelectItem>
+                <SelectItem value="income">Income</SelectItem>
+                <SelectItem value="expense">Expense</SelectItem>
               </SelectContent>
             </Select>
           </div>
           
           <div className="space-y-2">
-            <Label htmlFor="need-want">Need/Want</Label>
+            <Label htmlFor="category">Category</Label>
             <Select 
-              value={type}
-              onValueChange={(value) => setType(value as TransactionType)}
+              value={category} 
+              onValueChange={setCategory}
             >
-              <SelectTrigger id="need-want">
-                <SelectValue placeholder="Need or want?" />
+              <SelectTrigger id="category">
+                <SelectValue placeholder="Select category" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="need">Need</SelectItem>
-                <SelectItem value="want">Want</SelectItem>
+                <SelectItem value="food">Food & Dining</SelectItem>
+                <SelectItem value="transportation">Transportation</SelectItem>
+                <SelectItem value="utilities">Utilities</SelectItem>
+                <SelectItem value="housing">Housing</SelectItem>
+                <SelectItem value="entertainment">Entertainment</SelectItem>
+                <SelectItem value="healthcare">Healthcare</SelectItem>
+                <SelectItem value="education">Education</SelectItem>
+                <SelectItem value="shopping">Shopping</SelectItem>
+                <SelectItem value="personal">Personal</SelectItem>
+                <SelectItem value="travel">Travel</SelectItem>
+                <SelectItem value="salary">Salary</SelectItem>
+                <SelectItem value="investment">Investment</SelectItem>
+                <SelectItem value="other">Other</SelectItem>
               </SelectContent>
             </Select>
           </div>
           
-          <DialogFooter>
-            <Button type="submit">Add Transaction</Button>
-          </DialogFooter>
+          <Button type="submit" className="w-full mt-4">Add Transaction</Button>
         </form>
       </DialogContent>
     </Dialog>

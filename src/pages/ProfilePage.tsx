@@ -4,16 +4,12 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { toast } from "sonner";
-import { mockUser } from "@/lib/data";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
+import { useUser } from "@/components/auth/UserContext";
 
 export default function ProfilePage() {
-  const [user, setUser] = useState(() => {
-    const savedUser = localStorage.getItem('user');
-    return savedUser ? JSON.parse(savedUser) : mockUser;
-  });
+  const { user, updateUser } = useUser();
   const [formData, setFormData] = useState(user);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -22,9 +18,7 @@ export default function ProfilePage() {
   };
   
   const handleSave = () => {
-    setUser(formData);
-    localStorage.setItem('user', JSON.stringify(formData));
-    toast.success("Profile updated successfully!");
+    updateUser(formData);
   };
 
   return (

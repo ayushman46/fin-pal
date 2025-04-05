@@ -36,35 +36,37 @@ export function RazorpayPaymentButton({
     document.body.appendChild(script);
     
     return () => {
-      // Cleanup when component unmounts
-      document.body.removeChild(script);
+      if (document.body.contains(script)) {
+        document.body.removeChild(script);
+      }
     };
   }, []);
   
   const handlePayment = () => {
     setIsLoading(true);
     
-    // In a real app, this would come from your backend
-    // For this demo, we'll create the order information here
+    // In a real app with Supabase, we would make a call to our backend to create an order
+    // For the demo using Razorpay test mode, we'll create the order directly
     const orderInfo = {
-      key: 'rzp_test_YourTestKey', // Replace with your test key
+      key: 'rzp_test_6Tzogn9YWLqzj9', // Razorpay test key
       amount: amount * 100, // Razorpay expects amount in paise
       currency: "INR",
       name: "Fin Pal",
       description: goalName 
         ? `Contribution to ${goalName}`
         : "Contribution to savings",
-      order_id: "order_" + Date.now(), // In a real app, this would come from your backend
+      order_id: "order_" + Date.now(), // In production, this would come from your backend
       prefill: {
-        name: "Demo User",
-        email: "demo@example.com",
+        name: localStorage.getItem('userName') || "Demo User",
+        email: localStorage.getItem('userEmail') || "demo@example.com",
         contact: "9876543210"
       },
       theme: {
-        color: "#6366F1"
+        color: "#0f172a" // Dark theme color
       },
       handler: function (response: any) {
         // Handle successful payment
+        console.log("Payment successful:", response);
         toast.success("Payment successful!");
         
         // Call onSuccess callback if provided
@@ -82,6 +84,7 @@ export function RazorpayPaymentButton({
       
       // Razorpay will call the handler function on completion
       razorpayInstance.on('payment.failed', function (response: any) {
+        console.error("Payment failed:", response.error);
         toast.error("Payment failed. Please try again.");
         setIsLoading(false);
       });
