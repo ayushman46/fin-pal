@@ -9,13 +9,33 @@ import { Plus } from "lucide-react";
 import { toast } from "sonner";
 import { useTransactions } from "./TransactionsContext";
 
-export function AddTransactionDialog() {
-  const { addTransaction } = useTransactions();
+interface AddTransactionDialogProps {
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+  onAddTransaction?: (transaction: {
+    description: string;
+    amount: number;
+    category: any;
+    type: "income" | "expense";
+  }) => void;
+}
+
+export function AddTransactionDialog({ 
+  open: controlledOpen, 
+  onOpenChange: setControlledOpen,
+  onAddTransaction
+}: AddTransactionDialogProps = {}) {
+  const { addTransaction: contextAddTransaction } = useTransactions();
   const [open, setOpen] = useState(false);
   const [description, setDescription] = useState("");
   const [amount, setAmount] = useState("");
   const [category, setCategory] = useState("food");
   const [type, setType] = useState<"income" | "expense">("expense");
+
+  // Determine if we're in controlled or uncontrolled mode
+  const isControlled = controlledOpen !== undefined && setControlledOpen !== undefined;
+  const isDialogOpen = isControlled ? controlledOpen : open;
+  const setIsDialogOpen = isControlled ? setControlledOpen : setOpen;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -31,25 +51,31 @@ export function AddTransactionDialog() {
       return;
     }
     
-    addTransaction({
+    const newTransaction = {
       description,
-      amount: parsedAmount,
+      amount: type === "expense" ? -Math.abs(parsedAmount) : Math.abs(parsedAmount),
       category: category as any,
       type: type
-    });
+    };
+    
+    if (onAddTransaction) {
+      onAddTransaction(newTransaction);
+    } else {
+      contextAddTransaction(newTransaction);
+    }
     
     // Reset form
     setDescription("");
     setAmount("");
     setCategory("food");
     setType("expense");
-    setOpen(false);
+    setIsDialogOpen(false);
     
     toast.success("Transaction added successfully!");
   };
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
       <DialogTrigger asChild>
         <Button>
           <Plus className="mr-2 h-4 w-4" /> Add Transaction

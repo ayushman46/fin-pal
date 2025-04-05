@@ -110,6 +110,8 @@ export default function TransactionsPage() {
             <SelectItem value="all">All Types</SelectItem>
             <SelectItem value="need">Need</SelectItem>
             <SelectItem value="want">Want</SelectItem>
+            <SelectItem value="income">Income</SelectItem>
+            <SelectItem value="expense">Expense</SelectItem>
           </SelectContent>
         </Select>
       </div>

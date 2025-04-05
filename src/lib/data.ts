@@ -1,4 +1,3 @@
-
 // Mock data and services for the financial app
 
 // User profile type
@@ -20,9 +19,16 @@ export type TransactionCategory =
   | 'groceries'
   | 'health'
   | 'education'
-  | 'other';
+  | 'other'
+  | 'salary'
+  | 'investment'
+  | 'personal'
+  | 'travel'
+  | 'transportation'
+  | 'housing'
+  | 'healthcare';
 
-export type TransactionType = 'need' | 'want';
+export type TransactionType = 'need' | 'want' | 'income' | 'expense';
 
 export interface Transaction {
   id: string;
@@ -33,33 +39,13 @@ export interface Transaction {
   type: TransactionType;
 }
 
-// Savings goals
-export interface SavingsGoal {
-  id: string;
-  title: string;
-  targetAmount: number;
-  currentAmount: number;
-  dueDate?: string;
-  category?: string;
-  completed: boolean;
-}
-
-// Nudges and insights
-export interface Nudge {
-  id: string;
-  message: string;
-  type: 'info' | 'warning' | 'achievement' | 'tip';
-  date: string;
-  read: boolean;
-  actionable: boolean;
-}
-
-// Chat message
+// Updated ChatMessage to include status property
 export interface ChatMessage {
   id: string;
   content: string;
   sender: 'user' | 'ai';
   timestamp: string;
+  status?: 'sent' | 'delivered' | 'read';
 }
 
 // Mock user data

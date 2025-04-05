@@ -113,7 +113,7 @@ export default function ChatPage() {
     );
   };
 
-  const getStatusIcon = (status: string) => {
+  const getStatusIcon = (status?: string) => {
     switch(status) {
       case "sent":
         return <Check className="h-3 w-3 text-gray-400" />;
@@ -183,7 +183,7 @@ export default function ChatPage() {
                   message.sender === "user" ? "text-primary-foreground/70" : "text-muted-foreground/70"
                 )}>
                   {getFormattedTime(message.timestamp)}
-                  {message.sender === "user" && getStatusIcon(message.status || "sent")}
+                  {message.sender === "user" && getStatusIcon(message.status)}
                 </div>
               </div>
             </div>
