@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { Award, TrendingUp } from "lucide-react";
 import { SavingsGoal } from "./AddGoalDialog";
+import { RazorpayPaymentButton } from "./RazorpayPaymentButton";
 
 type AddFundsDialogProps = {
   goal: SavingsGoal | null;
@@ -17,6 +18,7 @@ type AddFundsDialogProps = {
 
 export function AddFundsDialog({ goal, open, onOpenChange, onAddFunds }: AddFundsDialogProps) {
   const [amount, setAmount] = useState("");
+  const [useRazorpay, setUseRazorpay] = useState(false);
   
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -30,11 +32,35 @@ export function AddFundsDialog({ goal, open, onOpenChange, onAddFunds }: AddFund
       return;
     }
     
+    if (useRazorpay) {
+      // Don't close the dialog, the Razorpay button will handle the payment flow
+      return;
+    }
+    
+    // Manual addition of funds
     onAddFunds(goal.id, parsedAmount);
     setAmount("");
     onOpenChange(false);
     
     toast.success(`Added ${parsedAmount.toFixed(2)} to your goal!`);
+  };
+
+  const handlePaymentSuccess = (paymentId: string) => {
+    if (!goal) return;
+    
+    const parsedAmount = parseFloat(amount);
+    
+    if (isNaN(parsedAmount) || parsedAmount <= 0) {
+      toast.error("Please enter a valid amount");
+      return;
+    }
+    
+    onAddFunds(goal.id, parsedAmount);
+    setAmount("");
+    setUseRazorpay(false);
+    onOpenChange(false);
+    
+    toast.success(`Added ${parsedAmount.toFixed(2)} to your goal via Razorpay!`);
   };
 
   if (!goal) return null;
@@ -78,6 +104,26 @@ export function AddFundsDialog({ goal, open, onOpenChange, onAddFunds }: AddFund
             />
           </div>
           
+          <div className="space-y-2">
+            <Label htmlFor="payment-method">Payment Method</Label>
+            <div className="grid grid-cols-2 gap-2">
+              <Button 
+                type="button"
+                variant={!useRazorpay ? "default" : "outline"}
+                onClick={() => setUseRazorpay(false)}
+              >
+                Manual
+              </Button>
+              <Button 
+                type="button"
+                variant={useRazorpay ? "default" : "outline"}
+                onClick={() => setUseRazorpay(true)}
+              >
+                Razorpay
+              </Button>
+            </div>
+          </div>
+          
           <div className="space-y-1">
             <div className="flex justify-between text-sm">
               <span>Current Progress</span>
@@ -92,7 +138,18 @@ export function AddFundsDialog({ goal, open, onOpenChange, onAddFunds }: AddFund
           </div>
           
           <DialogFooter>
-            <Button type="submit">Add Funds</Button>
+            {useRazorpay ? (
+              <RazorpayPaymentButton 
+                amount={parseFloat(amount) || 0}
+                onSuccess={handlePaymentSuccess}
+                goalId={goal.id}
+                goalName={goal.title}
+              >
+                Pay with Razorpay
+              </RazorpayPaymentButton>
+            ) : (
+              <Button type="submit">Add Funds</Button>
+            )}
           </DialogFooter>
         </form>
       </DialogContent>

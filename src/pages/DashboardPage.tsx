@@ -3,9 +3,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { 
-  mockNudges, 
-  mockTransactions, 
-  getTotalSpendingByType, 
+  mockNudges,
+  getTotalSpendingByType,
   getRecentTransactions, 
   formatCurrency,
 } from "@/lib/data";
@@ -14,15 +13,20 @@ import { TransactionItem } from "@/components/transactions/TransactionItem";
 import { NudgeItem } from "@/components/nudges/NudgeItem";
 import { useNavigate } from "react-router-dom";
 import { useSavings } from "@/components/savings/SavingsContext";
+import { useTransactions } from "@/components/transactions/TransactionsContext";
+import { useState } from "react";
+import { AddTransactionDialog } from "@/components/transactions/AddTransactionDialog";
 
 export default function DashboardPage() {
   const navigate = useNavigate();
-  const { goals, addGoal } = useSavings();
+  const { goals } = useSavings();
+  const { transactions, addTransaction } = useTransactions();
+  const [isAddTransactionDialogOpen, setIsAddTransactionDialogOpen] = useState(false);
   
-  const recentTransactions = getRecentTransactions(mockTransactions, 5);
-  const totalNeeds = getTotalSpendingByType(mockTransactions, 'need');
-  const totalWants = getTotalSpendingByType(mockTransactions, 'want');
-  const totalBalance = mockTransactions.reduce((sum, tx) => sum + tx.amount, 0);
+  const recentTransactions = getRecentTransactions(transactions, 5);
+  const totalNeeds = getTotalSpendingByType(transactions, 'need');
+  const totalWants = getTotalSpendingByType(transactions, 'want');
+  const totalBalance = transactions.reduce((sum, tx) => sum + tx.amount, 0);
   
   // Get top 3 goals for display on dashboard
   const topGoals = goals.slice(0, 3);
@@ -34,9 +38,14 @@ export default function DashboardPage() {
           <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
           <p className="text-muted-foreground">Welcome to your financial dashboard!</p>
         </div>
-        <Button onClick={() => navigate('/chat')}>
-          <MessageSquare className="mr-2 h-4 w-4" /> Chat with AI
-        </Button>
+        <div className="flex gap-2">
+          <Button onClick={() => setIsAddTransactionDialogOpen(true)}>
+            <Plus className="mr-2 h-4 w-4" /> Add Transaction
+          </Button>
+          <Button onClick={() => navigate('/chat')}>
+            <MessageSquare className="mr-2 h-4 w-4" /> Chat with AI
+          </Button>
+        </div>
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
@@ -186,6 +195,12 @@ export default function DashboardPage() {
           )}
         </div>
       </div>
+      
+      <AddTransactionDialog
+        open={isAddTransactionDialogOpen}
+        onOpenChange={setIsAddTransactionDialogOpen}
+        onAddTransaction={addTransaction}
+      />
     </div>
   );
 }

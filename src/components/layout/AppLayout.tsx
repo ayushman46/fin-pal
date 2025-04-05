@@ -3,6 +3,7 @@ import { Outlet } from "react-router-dom";
 import { AppSidebar } from "./AppSidebar";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { ThemeToggle } from "@/components/theme/ThemeToggle";
+import { UserMenu } from "@/components/auth/UserMenu";
 
 export function AppLayout() {
   return (
@@ -14,6 +15,7 @@ export function AppLayout() {
             <SidebarTrigger />
             <div className="ml-auto flex items-center gap-2">
               <ThemeToggle />
+              <UserMenu />
             </div>
           </div>
           <main className="flex-1 p-6 overflow-auto">

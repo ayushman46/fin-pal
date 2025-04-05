@@ -10,16 +10,20 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Transaction, TransactionCategory, TransactionType, mockTransactions } from "@/lib/data";
+import { TransactionCategory, TransactionType } from "@/lib/data";
 import { TransactionItem } from "@/components/transactions/TransactionItem";
 import { Plus, Search } from "lucide-react";
+import { useTransactions } from "@/components/transactions/TransactionsContext";
+import { AddTransactionDialog } from "@/components/transactions/AddTransactionDialog";
 
 export default function TransactionsPage() {
+  const { transactions, addTransaction } = useTransactions();
   const [searchTerm, setSearchTerm] = useState("");
   const [categoryFilter, setCategoryFilter] = useState<TransactionCategory | "all">("all");
   const [typeFilter, setTypeFilter] = useState<TransactionType | "all">("all");
+  const [isAddTransactionDialogOpen, setIsAddTransactionDialogOpen] = useState(false);
 
-  const allTransactions = [...mockTransactions].sort(
+  const allTransactions = [...transactions].sort(
     (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
   );
 
@@ -34,7 +38,7 @@ export default function TransactionsPage() {
   const expenses = filteredTransactions.filter((tx) => tx.amount < 0);
   const income = filteredTransactions.filter((tx) => tx.amount > 0);
 
-  const renderTransactionsList = (transactions: Transaction[]) => {
+  const renderTransactionsList = (transactions: typeof allTransactions) => {
     if (transactions.length === 0) {
       return (
         <div className="text-center py-8 text-muted-foreground">
@@ -59,7 +63,7 @@ export default function TransactionsPage() {
           <h1 className="text-3xl font-bold tracking-tight">Transactions</h1>
           <p className="text-muted-foreground">View and manage your financial activities</p>
         </div>
-        <Button>
+        <Button onClick={() => setIsAddTransactionDialogOpen(true)}>
           <Plus className="mr-2 h-4 w-4" /> Add Transaction
         </Button>
       </div>
@@ -126,6 +130,12 @@ export default function TransactionsPage() {
           {renderTransactionsList(income)}
         </TabsContent>
       </Tabs>
+      
+      <AddTransactionDialog 
+        open={isAddTransactionDialogOpen}
+        onOpenChange={setIsAddTransactionDialogOpen}
+        onAddTransaction={addTransaction}
+      />
     </div>
   );
 }
