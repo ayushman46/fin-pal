@@ -1,3 +1,4 @@
+
 // Mock data and services for the financial app
 
 // User profile type
@@ -37,6 +38,30 @@ export interface Transaction {
   date: string;
   category: TransactionCategory;
   type: TransactionType;
+}
+
+// Savings goals definition
+export interface SavingsGoal {
+  id: string;
+  title: string;
+  targetAmount: number;
+  currentAmount: number;
+  dueDate?: string;
+  category?: string;
+  completed: boolean;
+  streakDays?: number;
+  achievement?: string;
+  achievementLevel?: number;
+}
+
+// Nudge definition
+export interface Nudge {
+  id: string;
+  message: string;
+  type: 'info' | 'warning' | 'achievement' | 'tip';
+  date: string;
+  read: boolean;
+  actionable: boolean;
 }
 
 // Updated ChatMessage to include status property
