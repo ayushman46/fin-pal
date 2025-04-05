@@ -4,24 +4,28 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { 
   mockNudges, 
-  mockSavingsGoals, 
   mockTransactions, 
   getTotalSpendingByType, 
   getRecentTransactions, 
   formatCurrency,
-  getSavingsProgress
 } from "@/lib/data";
 import { MessageSquare, Plus, TrendingDown, TrendingUp } from "lucide-react";
 import { TransactionItem } from "@/components/transactions/TransactionItem";
 import { NudgeItem } from "@/components/nudges/NudgeItem";
 import { useNavigate } from "react-router-dom";
+import { useSavings } from "@/components/savings/SavingsContext";
 
 export default function DashboardPage() {
   const navigate = useNavigate();
+  const { goals, addGoal } = useSavings();
+  
   const recentTransactions = getRecentTransactions(mockTransactions, 5);
   const totalNeeds = getTotalSpendingByType(mockTransactions, 'need');
   const totalWants = getTotalSpendingByType(mockTransactions, 'want');
   const totalBalance = mockTransactions.reduce((sum, tx) => sum + tx.amount, 0);
+  
+  // Get top 3 goals for display on dashboard
+  const topGoals = goals.slice(0, 3);
   
   return (
     <div className="space-y-6">
@@ -137,30 +141,49 @@ export default function DashboardPage() {
         </div>
 
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {mockSavingsGoals.map(goal => (
-            <Card key={goal.id}>
-              <CardHeader className="pb-2">
-                <div className="flex justify-between items-center">
-                  <CardTitle className="text-md">{goal.title}</CardTitle>
-                  <span className="text-sm font-medium">
-                    {getSavingsProgress(goal)}%
-                  </span>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <Progress value={getSavingsProgress(goal)} className="h-2" />
-                <div className="flex justify-between mt-2 text-sm">
-                  <span>{formatCurrency(goal.currentAmount)}</span>
-                  <span className="text-muted-foreground">{formatCurrency(goal.targetAmount)}</span>
-                </div>
-                {goal.dueDate && (
-                  <p className="text-xs text-muted-foreground mt-2">
-                    Due by {new Date(goal.dueDate).toLocaleDateString()}
-                  </p>
-                )}
-              </CardContent>
+          {topGoals.map(goal => {
+            const progress = Math.min(100, Math.round((goal.currentAmount / goal.targetAmount) * 100));
+            
+            return (
+              <Card key={goal.id}>
+                <CardHeader className="pb-2">
+                  <div className="flex justify-between items-center">
+                    <CardTitle className="text-md">{goal.title}</CardTitle>
+                    <span className="text-sm font-medium">
+                      {progress}%
+                    </span>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <Progress value={progress} className="h-2" />
+                  <div className="flex justify-between mt-2 text-sm">
+                    <span>{formatCurrency(goal.currentAmount)}</span>
+                    <span className="text-muted-foreground">{formatCurrency(goal.targetAmount)}</span>
+                  </div>
+                  {goal.dueDate && (
+                    <p className="text-xs text-muted-foreground mt-2">
+                      Due by {new Date(goal.dueDate).toLocaleDateString()}
+                    </p>
+                  )}
+                  {goal.streakDays && goal.streakDays > 0 && (
+                    <div className="flex items-center mt-2 gap-1 text-xs text-accent">
+                      <div className="flex items-center">
+                        <TrendingUp className="h-3 w-3 mr-1" />
+                        <span>{goal.streakDays} day streak</span>
+                      </div>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            )})}
+          {goals.length === 0 && (
+            <Card className="col-span-full p-6 text-center">
+              <p className="text-muted-foreground mb-4">You haven't created any savings goals yet</p>
+              <Button onClick={() => navigate('/savings')}>
+                <Plus className="h-4 w-4 mr-2" /> Create Your First Goal
+              </Button>
             </Card>
-          ))}
+          )}
         </div>
       </div>
     </div>

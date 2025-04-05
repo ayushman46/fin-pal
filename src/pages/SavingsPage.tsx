@@ -1,26 +1,36 @@
 
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import { formatCurrency, getSavingsProgress, mockSavingsGoals } from "@/lib/data";
-import { Plus, Pencil, Trophy, Trash2 } from "lucide-react";
-import { toast } from "sonner";
+import { formatCurrency } from "@/lib/data";
+import { Plus, Pencil, Trophy, Trash2, Award, Flame } from "lucide-react";
+import { AddGoalDialog, SavingsGoal } from "@/components/savings/AddGoalDialog";
+import { EditGoalDialog } from "@/components/savings/EditGoalDialog";
+import { AddFundsDialog } from "@/components/savings/AddFundsDialog";
+import { useSavings } from "@/components/savings/SavingsContext";
 
 export default function SavingsPage() {
-  const handleAddGoal = () => {
-    toast.info("This would open a new goal form in the real app");
-  };
+  const { goals, addGoal, updateGoal, deleteGoal, addFunds } = useSavings();
   
-  const handleEditGoal = (id: string) => {
-    toast.info(`Editing goal ${id}`);
+  const [editingGoal, setEditingGoal] = useState<SavingsGoal | null>(null);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  
+  const [selectedGoal, setSelectedGoal] = useState<SavingsGoal | null>(null);
+  const [isAddFundsDialogOpen, setIsAddFundsDialogOpen] = useState(false);
+  
+  const handleEditGoal = (goal: SavingsGoal) => {
+    setEditingGoal(goal);
+    setIsEditDialogOpen(true);
+  };
+
+  const handleAddFundsToGoal = (goal: SavingsGoal) => {
+    setSelectedGoal(goal);
+    setIsAddFundsDialogOpen(true);
   };
 
   const handleDeleteGoal = (id: string) => {
-    toast.info(`Deleting goal ${id}`);
-  };
-
-  const handleAddToGoal = (id: string) => {
-    toast.success(`Added funds to goal ${id}`);
+    deleteGoal(id);
   };
 
   return (
@@ -30,14 +40,12 @@ export default function SavingsPage() {
           <h1 className="text-3xl font-bold tracking-tight">Savings Goals</h1>
           <p className="text-muted-foreground">Track and manage your financial goals</p>
         </div>
-        <Button onClick={handleAddGoal}>
-          <Plus className="mr-2 h-4 w-4" /> New Goal
-        </Button>
+        <AddGoalDialog onAddGoal={addGoal} />
       </div>
 
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-        {mockSavingsGoals.map((goal) => {
-          const progress = getSavingsProgress(goal);
+        {goals.map((goal) => {
+          const progress = Math.min(100, Math.round((goal.currentAmount / goal.targetAmount) * 100));
           
           return (
             <Card key={goal.id} className={goal.completed ? "border-secondary/30 bg-secondary/5" : ""}>
@@ -73,13 +81,25 @@ export default function SavingsPage() {
                     <p className="text-sm">{new Date(goal.dueDate).toLocaleDateString()}</p>
                   </div>
                 )}
+                
+                {goal.streakDays && goal.streakDays > 0 && (
+                  <div className="flex items-center gap-2 text-sm">
+                    <Flame className="h-4 w-4 text-accent" />
+                    <span>{goal.streakDays} day streak</span>
+                    {goal.achievement && (
+                      <div className="ml-auto achievement-badge">
+                        <Award className="h-4 w-4" />
+                      </div>
+                    )}
+                  </div>
+                )}
               </CardContent>
               <CardFooter className="pt-0 flex justify-between">
                 {!goal.completed ? (
                   <Button 
                     variant="default" 
                     className="w-full"
-                    onClick={() => handleAddToGoal(goal.id)}
+                    onClick={() => handleAddFundsToGoal(goal)}
                   >
                     Add Funds
                   </Button>
@@ -98,7 +118,7 @@ export default function SavingsPage() {
                   variant="ghost" 
                   size="icon" 
                   className="h-8 w-8" 
-                  onClick={() => handleEditGoal(goal.id)}
+                  onClick={() => handleEditGoal(goal)}
                 >
                   <Pencil className="h-4 w-4" />
                 </Button>
@@ -115,6 +135,22 @@ export default function SavingsPage() {
           );
         })}
       </div>
+      
+      {/* Edit Goal Dialog */}
+      <EditGoalDialog 
+        goal={editingGoal} 
+        open={isEditDialogOpen}
+        onOpenChange={setIsEditDialogOpen}
+        onUpdateGoal={updateGoal}
+      />
+      
+      {/* Add Funds Dialog */}
+      <AddFundsDialog
+        goal={selectedGoal}
+        open={isAddFundsDialogOpen}
+        onOpenChange={setIsAddFundsDialogOpen}
+        onAddFunds={addFunds}
+      />
     </div>
   );
 }

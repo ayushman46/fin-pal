@@ -21,7 +21,7 @@ export function AppSidebar() {
       <SidebarHeader className="flex items-center px-4 py-2">
         <div className="flex items-center gap-2">
           <Wallet2 className="h-6 w-6 text-primary" />
-          <h1 className="text-lg font-bold">Nudge Wallet</h1>
+          <h1 className="text-lg font-bold">Fin Pal</h1>
         </div>
       </SidebarHeader>
       <SidebarContent>
