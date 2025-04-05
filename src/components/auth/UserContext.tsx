@@ -1,21 +1,10 @@
-
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { mockUser } from '@/lib/data';
+import { mockUser, User as UserType } from '@/lib/data';
 import { toast } from 'sonner';
 
-export type User = {
-  id: string;
-  name: string;
-  email: string;
-  avatar: string;
-  premium?: boolean;
-  phone?: string;
-  bio?: string;
-};
-
 type UserContextType = {
-  user: User;
-  updateUser: (userData: Partial<User>) => void;
+  user: UserType;
+  updateUser: (userData: Partial<UserType>) => void;
   isLoading: boolean;
 };
 
@@ -31,7 +20,7 @@ export const useUser = () => {
 
 export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [isLoading, setIsLoading] = useState(true);
-  const [user, setUser] = useState<User>(() => {
+  const [user, setUser] = useState<UserType>(() => {
     // Try to get user from local storage
     const savedUser = localStorage.getItem('user');
     return savedUser ? JSON.parse(savedUser) : mockUser;
@@ -45,10 +34,17 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
     localStorage.setItem('userName', user.name);
     localStorage.setItem('userEmail', user.email);
     
+    // Check if we have an auth token but no user data - this shouldn't happen,
+    // but just in case, we'll keep the user logged in with default data
+    const authToken = localStorage.getItem('authToken');
+    if (authToken && !user.id) {
+      setUser(mockUser);
+    }
+    
     setIsLoading(false);
   }, [user]);
 
-  const updateUser = (userData: Partial<User>) => {
+  const updateUser = (userData: Partial<UserType>) => {
     setUser(prev => {
       const updatedUser = { ...prev, ...userData };
       return updatedUser;

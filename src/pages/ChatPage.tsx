@@ -3,9 +3,11 @@ import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { mockChatHistory, ChatMessage, mockUser } from "@/lib/data";
-import { SendHorizontal, Bot, Sparkles, Check, CheckCheck } from "lucide-react";
+import { mockChatHistory, ChatMessage, mockUser, mockTransactions, Transaction } from "@/lib/data";
+import { SendHorizontal, Bot, Sparkles, Check, CheckCheck, DollarSign, ShoppingCart, Banknote, PiggyBank } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useUser } from "@/components/auth/UserContext";
+import { Card, CardContent } from "@/components/ui/card";
 
 export default function ChatPage() {
   const [messages, setMessages] = useState<ChatMessage[]>(() => {
@@ -15,10 +17,9 @@ export default function ChatPage() {
   
   const [input, setInput] = useState("");
   const [isTyping, setIsTyping] = useState(false);
-  const [user, setUser] = useState(() => {
-    const savedUser = localStorage.getItem("user");
-    return savedUser ? JSON.parse(savedUser) : mockUser;
-  });
+  const [transactions, setTransactions] = useState<Transaction[]>(mockTransactions);
+  const { user } = useUser();
+  const [showSuggestions, setShowSuggestions] = useState(true);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -31,12 +32,31 @@ export default function ChatPage() {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
 
-  const handleSendMessage = () => {
-    if (!input.trim()) return;
+  // Calculate financial metrics
+  const totalIncome = transactions
+    .filter(tx => tx.amount > 0)
+    .reduce((sum, tx) => sum + tx.amount, 0);
+    
+  const totalExpenses = transactions
+    .filter(tx => tx.amount < 0)
+    .reduce((sum, tx) => sum + Math.abs(tx.amount), 0);
+    
+  const balance = totalIncome - totalExpenses;
+    
+  const needsSpending = transactions
+    .filter(tx => tx.type === 'need' && tx.amount < 0)
+    .reduce((sum, tx) => sum + Math.abs(tx.amount), 0);
+    
+  const wantsSpending = transactions
+    .filter(tx => tx.type === 'want' && tx.amount < 0)
+    .reduce((sum, tx) => sum + Math.abs(tx.amount), 0);
+
+  const handleSendMessage = (messageText: string = input) => {
+    if (!messageText.trim()) return;
     
     const userMessage: ChatMessage = {
       id: `msg-${Date.now()}`,
-      content: input,
+      content: messageText,
       sender: "user",
       timestamp: new Date().toISOString(),
       status: "sent"
@@ -45,6 +65,7 @@ export default function ChatPage() {
     setMessages((prev) => [...prev, userMessage]);
     setInput("");
     setIsTyping(true);
+    setShowSuggestions(false);
     
     // Update the message to "delivered" after a short delay
     setTimeout(() => {
@@ -64,26 +85,44 @@ export default function ChatPage() {
       );
     }, 1000);
     
-    // Simulate AI response based on financial keywords in the message
+    // Generate AI response
     setTimeout(() => {
-      const lowerInput = input.toLowerCase();
+      const lowerInput = messageText.toLowerCase();
       let aiResponse = "";
       
-      // Handle different types of financial queries
-      if (lowerInput.includes("budget") || lowerInput.includes("spending")) {
-        aiResponse = `Based on your recent transactions, you've spent ₹3,250 on non-essential items this month. That's about 25% of your total spending.`;
+      // Enhanced responses with financial data
+      if (lowerInput.includes("balance") || lowerInput.includes("how much") || lowerInput.includes("money")) {
+        aiResponse = `Your current balance is ₹${balance.toFixed(0)}. You've earned ₹${totalIncome.toFixed(0)} and spent ₹${totalExpenses.toFixed(0)} in total.`;
+      } else if (lowerInput.includes("needs") || lowerInput.includes("necessities")) {
+        aiResponse = `You've spent ₹${needsSpending.toFixed(0)} on essential needs (${(needsSpending/totalExpenses*100).toFixed(0)}% of your expenses). This includes groceries, rent, utilities, and other necessities.`;
+      } else if (lowerInput.includes("wants") || lowerInput.includes("discretionary")) {
+        aiResponse = `You've spent ₹${wantsSpending.toFixed(0)} on wants (${(wantsSpending/totalExpenses*100).toFixed(0)}% of your expenses). This includes dining out, entertainment, shopping, and other non-essential items.`;
+      } else if (lowerInput.includes("budget") || lowerInput.includes("spending")) {
+        aiResponse = `Based on your recent transactions, you've spent ₹${totalExpenses.toFixed(0)} this month. That's split between ₹${needsSpending.toFixed(0)} for needs and ₹${wantsSpending.toFixed(0)} for wants. I recommend keeping wants under 30% of your total spending.`;
       } else if (lowerInput.includes("saving") || lowerInput.includes("goals")) {
-        aiResponse = `You're making good progress on your savings goals! Just ₹800 more to reach your vacation fund target.`;
+        aiResponse = `You're making good progress on your savings goals! Just ₹800 more to reach your vacation fund target. Your emergency fund is currently at 50% of your target.`;
       } else if (lowerInput.includes("invest") || lowerInput.includes("investment")) {
         aiResponse = `Based on your risk profile, I recommend allocating 60% to index funds, 30% to bonds, and 10% to high-growth stocks. Would you like me to suggest some specific options?`;
       } else if (lowerInput.includes("expense") || lowerInput.includes("cost")) {
-        aiResponse = `Your biggest expense category this month is food, with ₹4,500 spent so far.`;
+        const categories = transactions
+          .filter(tx => tx.amount < 0)
+          .reduce((acc, tx) => {
+            acc[tx.category] = (acc[tx.category] || 0) + Math.abs(tx.amount);
+            return acc;
+          }, {} as Record<string, number>);
+        
+        const topCategory = Object.entries(categories)
+          .sort((a, b) => b[1] - a[1])[0];
+          
+        aiResponse = `Your biggest expense category is ${topCategory[0]}, with ₹${topCategory[1].toFixed(0)} spent so far. Would you like to see a breakdown of all your expenses?`;
       } else if (lowerInput.includes("income") || lowerInput.includes("salary")) {
-        aiResponse = `Your income this month is ₹25,000, which is consistent with your average monthly income over the past 6 months.`;
-      } else if (lowerInput.includes("debt") || lowerInput.includes("loan")) {
-        aiResponse = `You currently have ₹75,000 in outstanding loans with an average interest rate of 10.5%. Focusing on paying off your credit card debt first would save you the most money.`;
+        aiResponse = `Your total income is ₹${totalIncome.toFixed(0)}. This is consistent with your average monthly income over the past 6 months.`;
+      } else if (lowerInput.includes("hello") || lowerInput.includes("hi") || lowerInput.includes("hey")) {
+        aiResponse = `Hello ${user.name}! How can I help with your finances today? You can ask about your balance, spending on needs vs wants, budget tracking, or savings goals.`;
+      } else if (lowerInput.includes("thank")) {
+        aiResponse = `You're welcome, ${user.name}! Is there anything else I can help you with?`;
       } else {
-        aiResponse = `Thanks for your message! Is there a specific aspect of your finances you'd like to discuss today? I can help with budgeting, savings goals, investments, or expense analysis.`;
+        aiResponse = `Thanks for your message, ${user.name}! Is there a specific aspect of your finances you'd like to discuss today? I can help with budgeting, savings goals, investments, or expense analysis.`;
       }
       
       const botMessage: ChatMessage = {
@@ -95,6 +134,7 @@ export default function ChatPage() {
       
       setMessages((prev) => [...prev, botMessage]);
       setIsTyping(false);
+      setTimeout(() => setShowSuggestions(true), 1000);
     }, 1500);
   };
 
@@ -109,7 +149,7 @@ export default function ChatPage() {
     // Simple detector for currency amounts
     return content.replace(
       /(₹\d+(?:,\d+)?(?:\.\d+)?)/g,
-      '<span class="font-semibold">$1</span>'
+      '<span class="font-semibold text-primary">$1</span>'
     );
   };
 
@@ -132,6 +172,13 @@ export default function ChatPage() {
       minute: '2-digit' 
     });
   };
+  
+  const quickSuggestions = [
+    { text: "What's my current balance?", icon: <DollarSign className="h-4 w-4" /> },
+    { text: "How much am I spending on wants?", icon: <ShoppingCart className="h-4 w-4" /> },
+    { text: "How are my savings goals doing?", icon: <PiggyBank className="h-4 w-4" /> },
+    { text: "What's my income this month?", icon: <Banknote className="h-4 w-4" /> }
+  ];
 
   return (
     <div className="flex flex-col h-[calc(100vh-8rem)]">
@@ -146,6 +193,28 @@ export default function ChatPage() {
         <div className="sticky top-0 bg-gradient-to-b from-[#0f1921] to-transparent py-2 mb-2 text-center text-sm text-muted-foreground">
           Today
         </div>
+        
+        {/* Financial Summary Card */}
+        <Card className="mb-4 bg-primary/10 border-primary/20">
+          <CardContent className="p-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-1">
+                <p className="text-xs text-muted-foreground">Current Balance</p>
+                <p className="text-2xl font-bold">₹{balance.toFixed(0)}</p>
+              </div>
+              <div className="space-y-2">
+                <div className="flex justify-between items-center text-sm">
+                  <span>Needs</span>
+                  <span>₹{needsSpending.toFixed(0)}</span>
+                </div>
+                <div className="flex justify-between items-center text-sm">
+                  <span>Wants</span>
+                  <span>₹{wantsSpending.toFixed(0)}</span>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
         
         {messages.map((message) => (
           <div
@@ -210,6 +279,23 @@ export default function ChatPage() {
         <div ref={messagesEndRef} />
       </div>
 
+      {/* Quick suggestion chips */}
+      {showSuggestions && !isTyping && (
+        <div className="flex flex-wrap gap-2 mb-3">
+          {quickSuggestions.map((suggestion, index) => (
+            <Button
+              key={index}
+              variant="outline"
+              className="flex items-center gap-2 text-sm py-1 px-3 h-auto"
+              onClick={() => handleSendMessage(suggestion.text)}
+            >
+              {suggestion.icon}
+              {suggestion.text}
+            </Button>
+          ))}
+        </div>
+      )}
+
       <div className="relative bg-muted p-2 rounded-lg">
         <Textarea
           placeholder="Type a message..."
@@ -221,7 +307,7 @@ export default function ChatPage() {
         <Button
           size="icon"
           className="absolute bottom-4 right-4"
-          onClick={handleSendMessage}
+          onClick={() => handleSendMessage()}
           disabled={!input.trim() || isTyping}
         >
           <SendHorizontal className="h-5 w-5" />

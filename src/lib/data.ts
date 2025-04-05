@@ -1,4 +1,3 @@
-
 // Mock data and services for the financial app
 
 // User profile type
@@ -281,7 +280,12 @@ export const authService = {
     return new Promise((resolve, reject) => {
       // In a real app, we would validate against a backend
       if (email === 'demo@example.com' && password === 'password') {
-        setTimeout(() => resolve(mockUser), 800);
+        const userData = {
+          ...mockUser,
+          email: email,
+          name: 'Demo User',  // Set a default name for demo users
+        };
+        setTimeout(() => resolve(userData), 800);
       } else {
         setTimeout(() => reject(new Error('Invalid email or password')), 800);
       }
@@ -291,12 +295,21 @@ export const authService = {
   register: (name: string, email: string, password: string): Promise<User> => {
     return new Promise((resolve) => {
       // In a real app, this would create a new user in the database
-      setTimeout(() => resolve({...mockUser, name, email}), 1000);
+      const userData = {
+        ...mockUser, 
+        name, 
+        email,
+        avatar: `https://i.pravatar.cc/150?img=${Math.floor(Math.random() * 70)}`
+      };
+      setTimeout(() => resolve(userData), 800);
     });
   },
   
   logout: (): Promise<void> => {
     return new Promise((resolve) => {
+      // Clear auth token
+      localStorage.removeItem('authToken');
+      localStorage.removeItem('user');
       setTimeout(resolve, 300);
     });
   }

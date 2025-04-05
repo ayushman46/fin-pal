@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { authService } from "@/lib/data";
+import { useUser } from "./UserContext";
 
 type AuthMode = "login" | "register";
 
@@ -14,11 +15,12 @@ export function AuthForm() {
   const [mode, setMode] = useState<AuthMode>("login");
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
+  const { updateUser } = useUser();
 
   const [formData, setFormData] = useState({
     name: "",
-    email: "",
-    password: "",
+    email: "demo@example.com", // Prefill demo credentials
+    password: "password",       // Prefill demo password
   });
 
   const toggleMode = () => {
@@ -35,16 +37,36 @@ export function AuthForm() {
     setIsLoading(true);
 
     try {
+      let userData;
       if (mode === "login") {
-        await authService.login(formData.email, formData.password);
+        userData = await authService.login(formData.email, formData.password);
         toast.success("Login successful!");
       } else {
-        await authService.register(formData.name, formData.email, formData.password);
+        userData = await authService.register(formData.name, formData.email, formData.password);
         toast.success("Account created successfully!");
       }
+      
+      // Update user context with login details
+      updateUser(userData);
+      
+      // Store auth token
+      localStorage.setItem('authToken', 'demo-token-' + Date.now());
       navigate("/dashboard");
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Authentication failed");
+      // Try to register if login fails with demo credentials
+      if (mode === "login") {
+        try {
+          const userData = await authService.register("Demo User", formData.email, formData.password);
+          updateUser(userData);
+          localStorage.setItem('authToken', 'demo-token-' + Date.now());
+          navigate("/dashboard");
+          toast.success("New account created and logged in!");
+        } catch (registerError) {
+          toast.error(registerError instanceof Error ? registerError.message : "Authentication failed");
+        }
+      } else {
+        toast.error(error instanceof Error ? error.message : "Authentication failed");
+      }
     } finally {
       setIsLoading(false);
     }
@@ -90,14 +112,7 @@ export function AuthForm() {
           </div>
 
           <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <Label htmlFor="password">Password</Label>
-              {mode === "login" && (
-                <a href="#" className="text-xs text-primary hover:underline">
-                  Forgot password?
-                </a>
-              )}
-            </div>
+            <Label htmlFor="password">Password</Label>
             <Input
               id="password"
               name="password"
