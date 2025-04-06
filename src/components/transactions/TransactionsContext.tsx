@@ -16,6 +16,7 @@ type TransactionsContextType = {
   getTotalSpendingByType: (type: TransactionType) => number;
   getTotalBalance: () => number;
   generateNudges: () => void;
+  getCategorySpending: (category: TransactionCategory) => number;
 };
 
 const TransactionsContext = createContext<TransactionsContextType | undefined>(undefined);
@@ -37,6 +38,13 @@ export const TransactionsProvider: React.FC<{ children: React.ReactNode }> = ({ 
   useEffect(() => {
     localStorage.setItem('transactions', JSON.stringify(transactions));
   }, [transactions]);
+
+  // Get category spending
+  const getCategorySpending = (category: TransactionCategory): number => {
+    return transactions
+      .filter(tx => tx.category === category && tx.amount < 0)
+      .reduce((sum, tx) => sum + Math.abs(tx.amount), 0);
+  };
 
   // Generate personalized nudges based on transactions
   const generateNudges = () => {
@@ -76,7 +84,7 @@ export const TransactionsProvider: React.FC<{ children: React.ReactNode }> = ({ 
     if (topCategory && topAmount > 50) {
       newNudges.push({
         id: `nudge-${Date.now()}-1`,
-        message: `You've spent $${topAmount.toFixed(0)} on ${topCategory} in the past week. Consider setting a budget for this category.`,
+        message: `You've spent ₹${topAmount.toFixed(0)} on ${topCategory} in the past week. Consider setting a budget for this category.`,
         type: 'warning',
         date: new Date().toISOString(),
         read: false,
@@ -84,7 +92,7 @@ export const TransactionsProvider: React.FC<{ children: React.ReactNode }> = ({ 
       });
     }
 
-    // Food delivery spending nudge
+    // Food delivery spending nudge with alert
     const foodDeliveryTransactions = recentTransactions.filter(tx => 
       tx.category === 'food' && tx.description.toLowerCase().includes('delivery')
     );
@@ -93,12 +101,20 @@ export const TransactionsProvider: React.FC<{ children: React.ReactNode }> = ({ 
     if (foodDeliverySpending > 30) {
       newNudges.push({
         id: `nudge-${Date.now()}-2`,
-        message: `You spent $${foodDeliverySpending.toFixed(0)} on food delivery this week. Cooking at home could save you money.`,
-        type: 'tip',
+        message: `Alert! You've spent ₹${foodDeliverySpending.toFixed(0)} on food delivery this week. Cooking at home could save you money.`,
+        type: 'warning',
         date: new Date().toISOString(),
         read: false,
         actionable: true
       });
+      
+      // Show alert toast
+      if (foodDeliverySpending > 100) {
+        toast.warning(`You've spent ₹${foodDeliverySpending.toFixed(0)} on food delivery this week!`, {
+          description: "This is higher than your usual spending.",
+          duration: 5000,
+        });
+      }
     }
 
     // Spending trend nudge
@@ -110,7 +126,7 @@ export const TransactionsProvider: React.FC<{ children: React.ReactNode }> = ({ 
       if (totalSpending > 200) {
         newNudges.push({
           id: `nudge-${Date.now()}-3`,
-          message: `Your spending is trending higher than usual. You've spent $${totalSpending.toFixed(0)} in the past week.`,
+          message: `Your spending is trending higher than usual. You've spent ₹${totalSpending.toFixed(0)} in the past week.`,
           type: 'info',
           date: new Date().toISOString(),
           read: false,
@@ -136,6 +152,61 @@ export const TransactionsProvider: React.FC<{ children: React.ReactNode }> = ({ 
         actionable: false
       });
     }
+    
+    // Gamified savings challenge
+    const weeklyGoal = 100;
+    const savingsGoals = JSON.parse(localStorage.getItem('savingsGoals') || '[]');
+    const totalSaved = savingsGoals.reduce((sum: number, goal: any) => sum + goal.currentAmount, 0);
+    const previousTotal = parseFloat(localStorage.getItem('previousSavingsTotal') || '0');
+    const weeklyProgress = totalSaved - previousTotal;
+    
+    if (weeklyProgress < weeklyGoal) {
+      const remaining = weeklyGoal - weeklyProgress;
+      newNudges.push({
+        id: `nudge-${Date.now()}-5`,
+        message: `🎮 Savings Challenge: Save ₹${remaining.toFixed(0)} more this week to unlock the 'Weekly Saver' badge!`,
+        type: 'tip',
+        date: new Date().toISOString(),
+        read: false,
+        actionable: true
+      });
+    } else if (weeklyProgress >= weeklyGoal) {
+      newNudges.push({
+        id: `nudge-${Date.now()}-6`,
+        message: `🏆 Challenge Complete! You've saved ₹${weeklyProgress.toFixed(0)} this week and unlocked the 'Weekly Saver' badge!`,
+        type: 'achievement',
+        date: new Date().toISOString(),
+        read: false,
+        actionable: false
+      });
+      
+      // Show achievement toast
+      toast.success("🎮 Weekly Savings Challenge Completed!", {
+        description: "You've saved enough to earn the Weekly Saver badge!",
+        duration: 5000,
+      });
+    }
+    
+    // Update previous total for next week's comparison
+    localStorage.setItem('previousSavingsTotal', totalSaved.toString());
+    
+    // Category spending alerts
+    const categories: TransactionCategory[] = ['food', 'shopping', 'entertainment', 'transport'];
+    categories.forEach(category => {
+      const spending = getCategorySpending(category);
+      const threshold = category === 'food' ? 200 : category === 'shopping' ? 500 : 100;
+      
+      if (spending > threshold) {
+        newNudges.push({
+          id: `nudge-${Date.now()}-${category}`,
+          message: `⚠️ Spending Alert: You've spent ₹${spending.toFixed(0)} on ${category} recently. This is higher than recommended.`,
+          type: 'warning',
+          date: new Date().toISOString(),
+          read: false,
+          actionable: true
+        });
+      }
+    });
 
     // If we have new nudges, add them to storage
     if (newNudges.length > 0) {
@@ -215,7 +286,8 @@ export const TransactionsProvider: React.FC<{ children: React.ReactNode }> = ({ 
       deleteTransaction,
       getTotalSpendingByType,
       getTotalBalance,
-      generateNudges
+      generateNudges,
+      getCategorySpending
     }}>
       {children}
     </TransactionsContext.Provider>

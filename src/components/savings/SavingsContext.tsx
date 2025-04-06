@@ -1,8 +1,8 @@
-
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { SavingsGoal } from './AddGoalDialog';
 import { mockSavingsGoals } from '@/lib/data';
 import { toast } from 'sonner';
+import { useTransactions } from '@/components/transactions/TransactionsContext';
 
 type SavingsContextType = {
   goals: SavingsGoal[];
@@ -27,6 +27,8 @@ export const SavingsProvider: React.FC<{ children: React.ReactNode }> = ({ child
     const savedGoals = localStorage.getItem('savingsGoals');
     return savedGoals ? JSON.parse(savedGoals) : mockSavingsGoals;
   });
+  
+  const { transactions, addTransaction } = useTransactions();
 
   useEffect(() => {
     localStorage.setItem('savingsGoals', JSON.stringify(goals));
@@ -95,7 +97,7 @@ export const SavingsProvider: React.FC<{ children: React.ReactNode }> = ({ child
             } else if (newStreak >= 14) {
               achievement = "Savings Pro";
               achievementLevel = 3;
-            } else if (newStreak >= 7) {
+            } else if (newStreak >=  7) {
               achievement = "Consistent Saver";
               achievementLevel = 2;
             }
@@ -118,6 +120,14 @@ export const SavingsProvider: React.FC<{ children: React.ReactNode }> = ({ child
               });
             }, 300);
           }
+          
+          // Add a savings transaction to keep track of balance
+          addTransaction({
+            description: `Funds added to ${goal.title}`,
+            amount: -amount,
+            category: 'personal',
+            type: 'expense'
+          });
           
           return { 
             ...goal, 

@@ -1,33 +1,61 @@
+
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { 
-  mockNudges,
-  getRecentTransactions, 
-  formatCurrency,
-} from "@/lib/data";
-import { MessageSquare, Plus, TrendingDown, TrendingUp } from "lucide-react";
+import { formatCurrency } from "@/lib/data";
+import { MessageSquare, Plus, TrendingDown, TrendingUp, Bell, Award } from "lucide-react";
 import { TransactionItem } from "@/components/transactions/TransactionItem";
 import { NudgeItem } from "@/components/nudges/NudgeItem";
 import { useNavigate } from "react-router-dom";
 import { useSavings } from "@/components/savings/SavingsContext";
 import { useTransactions } from "@/components/transactions/TransactionsContext";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { AddTransactionDialog } from "@/components/transactions/AddTransactionDialog";
 
 export default function DashboardPage() {
   const navigate = useNavigate();
   const { goals } = useSavings();
-  const { transactions, addTransaction, getTotalSpendingByType, getTotalBalance } = useTransactions();
+  const { transactions, addTransaction, getTotalSpendingByType, getTotalBalance, generateNudges } = useTransactions();
   const [isAddTransactionDialogOpen, setIsAddTransactionDialogOpen] = useState(false);
+  const [nudges, setNudges] = useState<any[]>([]);
   
-  const recentTransactions = getRecentTransactions(transactions, 5);
+  const recentTransactions = transactions
+    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+    .slice(0, 5);
+    
   const totalNeeds = getTotalSpendingByType('need');
   const totalWants = getTotalSpendingByType('want');
   const totalBalance = getTotalBalance();
   
   // Get top 3 goals for display on dashboard
   const topGoals = goals.slice(0, 3);
+  
+  // Load nudges from localStorage
+  useEffect(() => {
+    const storedNudges = localStorage.getItem('nudges');
+    if (storedNudges) {
+      setNudges(JSON.parse(storedNudges));
+    } else {
+      // Generate nudges if none exist
+      generateNudges();
+      setTimeout(() => {
+        const freshNudges = localStorage.getItem('nudges');
+        if (freshNudges) {
+          setNudges(JSON.parse(freshNudges));
+        }
+      }, 1000);
+    }
+  }, [generateNudges]);
+  
+  const refreshNudges = () => {
+    generateNudges();
+    setTimeout(() => {
+      const freshNudges = localStorage.getItem('nudges');
+      if (freshNudges) {
+        setNudges(JSON.parse(freshNudges));
+      }
+    }, 1000);
+  };
   
   return (
     <div className="space-y-6">
@@ -47,12 +75,12 @@ export default function DashboardPage() {
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        <Card>
+        <Card className="bg-primary/5 transition-all duration-300 hover:shadow-md">
           <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
             <CardTitle className="text-sm font-medium">Current Balance</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className={`text-2xl font-bold ${totalBalance >= 0 ? 'money-positive' : 'money-negative'}`}>
+            <div className={`text-2xl font-bold ${totalBalance >= 0 ? 'text-primary' : 'text-destructive'}`}>
               {formatCurrency(totalBalance)}
             </div>
             <p className="text-xs text-muted-foreground">
@@ -61,13 +89,13 @@ export default function DashboardPage() {
           </CardContent>
         </Card>
         
-        <Card>
+        <Card className="bg-destructive/5 transition-all duration-300 hover:shadow-md">
           <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
             <CardTitle className="text-sm font-medium">Needs Spending</CardTitle>
             <TrendingDown className="h-4 w-4 text-destructive" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold money-negative">
+            <div className="text-2xl font-bold text-destructive">
               {formatCurrency(totalNeeds)}
             </div>
             <div className="mt-2 h-1.5 rounded-full bg-muted overflow-hidden">
@@ -77,18 +105,18 @@ export default function DashboardPage() {
               />
             </div>
             <p className="text-xs text-muted-foreground mt-1.5">
-              Essential expenses
+              Essential expenses ({Math.round((totalNeeds / (totalNeeds + totalWants || 1)) * 100)}%)
             </p>
           </CardContent>
         </Card>
         
-        <Card>
+        <Card className="bg-amber-500/5 transition-all duration-300 hover:shadow-md">
           <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
             <CardTitle className="text-sm font-medium">Wants Spending</CardTitle>
             <TrendingUp className="h-4 w-4 text-amber-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold money-negative">
+            <div className="text-2xl font-bold text-amber-500">
               {formatCurrency(totalWants)}
             </div>
             <div className="mt-2 h-1.5 rounded-full bg-muted overflow-hidden">
@@ -98,14 +126,14 @@ export default function DashboardPage() {
               />
             </div>
             <p className="text-xs text-muted-foreground mt-1.5">
-              Non-essential expenses
+              Non-essential expenses ({Math.round((totalWants / (totalNeeds + totalWants || 1)) * 100)}%)
             </p>
           </CardContent>
         </Card>
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        <Card className="md:col-span-2 lg:col-span-2">
+        <Card className="md:col-span-2 lg:col-span-2 transition-all duration-300 hover:shadow-md">
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle>Recent Transactions</CardTitle>
             <Button variant="outline" size="sm" onClick={() => navigate('/transactions')}>View All</Button>
@@ -124,16 +152,37 @@ export default function DashboardPage() {
           </CardContent>
         </Card>
 
-        <Card className="lg:col-span-1">
+        <Card className="lg:col-span-1 transition-all duration-300 hover:shadow-md">
           <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle>Smart Nudges</CardTitle>
-            <Button variant="outline" size="sm" onClick={() => navigate('/insights')}>View All</Button>
+            <div>
+              <CardTitle>Smart Nudges</CardTitle>
+              <p className="text-xs text-muted-foreground">AI-powered financial insights</p>
+            </div>
+            <Button variant="outline" size="sm" onClick={refreshNudges}>
+              <Bell className="h-4 w-4 mr-1" /> Refresh
+            </Button>
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
-              {mockNudges.slice(0, 3).map(nudge => (
+              {nudges.slice(0, 3).map((nudge: any) => (
                 <NudgeItem key={nudge.id} nudge={nudge} />
               ))}
+              {nudges.length === 0 && (
+                <div className="text-center py-4 text-muted-foreground">
+                  <Bell className="h-8 w-8 mx-auto mb-2 text-muted-foreground/50" />
+                  <p>No nudges yet. Add some transactions to get personalized insights!</p>
+                </div>
+              )}
+            </div>
+            <div className="mt-4">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="w-full" 
+                onClick={() => navigate('/insights')}
+              >
+                View All Insights
+              </Button>
             </div>
           </CardContent>
         </Card>
@@ -152,7 +201,7 @@ export default function DashboardPage() {
             const progress = Math.min(100, Math.round((goal.currentAmount / goal.targetAmount) * 100));
             
             return (
-              <Card key={goal.id}>
+              <Card key={goal.id} className="transition-all duration-300 hover:shadow-md">
                 <CardHeader className="pb-2">
                   <div className="flex justify-between items-center">
                     <CardTitle className="text-md">{goal.title}</CardTitle>
@@ -178,6 +227,11 @@ export default function DashboardPage() {
                         <TrendingUp className="h-3 w-3 mr-1" />
                         <span>{goal.streakDays} day streak</span>
                       </div>
+                      {goal.achievement && (
+                        <div className="ml-auto achievement-badge">
+                          <Award className="h-3 w-3" />
+                        </div>
+                      )}
                     </div>
                   )}
                 </CardContent>
