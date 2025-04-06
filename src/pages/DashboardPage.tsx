@@ -1,10 +1,8 @@
-
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { 
   mockNudges,
-  getTotalSpendingByType,
   getRecentTransactions, 
   formatCurrency,
 } from "@/lib/data";
@@ -20,13 +18,13 @@ import { AddTransactionDialog } from "@/components/transactions/AddTransactionDi
 export default function DashboardPage() {
   const navigate = useNavigate();
   const { goals } = useSavings();
-  const { transactions, addTransaction } = useTransactions();
+  const { transactions, addTransaction, getTotalSpendingByType, getTotalBalance } = useTransactions();
   const [isAddTransactionDialogOpen, setIsAddTransactionDialogOpen] = useState(false);
   
   const recentTransactions = getRecentTransactions(transactions, 5);
-  const totalNeeds = getTotalSpendingByType(transactions, 'need');
-  const totalWants = getTotalSpendingByType(transactions, 'want');
-  const totalBalance = transactions.reduce((sum, tx) => sum + tx.amount, 0);
+  const totalNeeds = getTotalSpendingByType('need');
+  const totalWants = getTotalSpendingByType('want');
+  const totalBalance = getTotalBalance();
   
   // Get top 3 goals for display on dashboard
   const topGoals = goals.slice(0, 3);
@@ -75,7 +73,7 @@ export default function DashboardPage() {
             <div className="mt-2 h-1.5 rounded-full bg-muted overflow-hidden">
               <div 
                 className="h-full bg-destructive transition-all" 
-                style={{ width: `${(totalNeeds / (totalNeeds + totalWants)) * 100}%` }} 
+                style={{ width: `${(totalNeeds / (totalNeeds + totalWants || 1)) * 100}%` }} 
               />
             </div>
             <p className="text-xs text-muted-foreground mt-1.5">
@@ -96,7 +94,7 @@ export default function DashboardPage() {
             <div className="mt-2 h-1.5 rounded-full bg-muted overflow-hidden">
               <div 
                 className="h-full bg-amber-500 transition-all" 
-                style={{ width: `${(totalWants / (totalNeeds + totalWants)) * 100}%` }} 
+                style={{ width: `${(totalWants / (totalNeeds + totalWants || 1)) * 100}%` }} 
               />
             </div>
             <p className="text-xs text-muted-foreground mt-1.5">

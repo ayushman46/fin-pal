@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Plus } from "lucide-react";
 import { toast } from "sonner";
 import { useTransactions } from "./TransactionsContext";
+import { TransactionCategory, TransactionType } from "@/lib/data";
 
 interface AddTransactionDialogProps {
   open?: boolean;
@@ -15,8 +16,8 @@ interface AddTransactionDialogProps {
   onAddTransaction?: (transaction: {
     description: string;
     amount: number;
-    category: any;
-    type: "income" | "expense";
+    category: TransactionCategory;
+    type: TransactionType;
   }) => void;
 }
 
@@ -29,8 +30,9 @@ export function AddTransactionDialog({
   const [open, setOpen] = useState(false);
   const [description, setDescription] = useState("");
   const [amount, setAmount] = useState("");
-  const [category, setCategory] = useState("food");
-  const [type, setType] = useState<"income" | "expense">("expense");
+  const [category, setCategory] = useState<TransactionCategory>("food");
+  const [transactionType, setTransactionType] = useState<"income" | "expense">("expense");
+  const [spendingType, setSpendingType] = useState<"need" | "want">("want");
 
   // Determine if we're in controlled or uncontrolled mode
   const isControlled = controlledOpen !== undefined && setControlledOpen !== undefined;
@@ -51,11 +53,16 @@ export function AddTransactionDialog({
       return;
     }
     
+    // Determine final type based on income/expense and need/want selections
+    const finalType: TransactionType = transactionType === "income" 
+      ? "income" 
+      : spendingType;
+    
     const newTransaction = {
       description,
-      amount: type === "expense" ? -Math.abs(parsedAmount) : Math.abs(parsedAmount),
-      category: category as any,
-      type: type
+      amount: transactionType === "expense" ? -Math.abs(parsedAmount) : Math.abs(parsedAmount),
+      category: category,
+      type: finalType
     };
     
     if (onAddTransaction) {
@@ -68,7 +75,8 @@ export function AddTransactionDialog({
     setDescription("");
     setAmount("");
     setCategory("food");
-    setType("expense");
+    setTransactionType("expense");
+    setSpendingType("want");
     setIsDialogOpen(false);
     
     toast.success("Transaction added successfully!");
@@ -112,10 +120,10 @@ export function AddTransactionDialog({
           </div>
           
           <div className="space-y-2">
-            <Label htmlFor="type">Type</Label>
+            <Label htmlFor="type">Transaction Type</Label>
             <Select 
-              value={type} 
-              onValueChange={(value) => setType(value as "income" | "expense")}
+              value={transactionType} 
+              onValueChange={(value) => setTransactionType(value as "income" | "expense")}
             >
               <SelectTrigger id="type">
                 <SelectValue placeholder="Select type" />
@@ -127,11 +135,29 @@ export function AddTransactionDialog({
             </Select>
           </div>
           
+          {transactionType === "expense" && (
+            <div className="space-y-2">
+              <Label htmlFor="spendingType">Spending Classification</Label>
+              <Select 
+                value={spendingType} 
+                onValueChange={(value) => setSpendingType(value as "need" | "want")}
+              >
+                <SelectTrigger id="spendingType">
+                  <SelectValue placeholder="Select spending type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="need">Need (Essential)</SelectItem>
+                  <SelectItem value="want">Want (Non-essential)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+          
           <div className="space-y-2">
             <Label htmlFor="category">Category</Label>
             <Select 
               value={category} 
-              onValueChange={setCategory}
+              onValueChange={(value) => setCategory(value as TransactionCategory)}
             >
               <SelectTrigger id="category">
                 <SelectValue placeholder="Select category" />

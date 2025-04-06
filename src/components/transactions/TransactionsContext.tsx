@@ -13,6 +13,8 @@ type TransactionsContextType = {
   }) => void;
   updateTransaction: (id: string, transaction: Partial<Transaction>) => void;
   deleteTransaction: (id: string) => void;
+  getTotalSpendingByType: (type: TransactionType) => number;
+  getTotalBalance: () => number;
 };
 
 const TransactionsContext = createContext<TransactionsContextType | undefined>(undefined);
@@ -65,9 +67,28 @@ export const TransactionsProvider: React.FC<{ children: React.ReactNode }> = ({ 
     setTransactions(prev => prev.filter(transaction => transaction.id !== id));
     toast.success("Transaction deleted successfully");
   };
+  
+  // Helper functions to calculate spending by type
+  const getTotalSpendingByType = (type: TransactionType): number => {
+    return transactions
+      .filter(tx => tx.type === type && tx.amount < 0)
+      .reduce((sum, tx) => sum + Math.abs(tx.amount), 0);
+  };
+  
+  // Calculate total balance
+  const getTotalBalance = (): number => {
+    return transactions.reduce((sum, tx) => sum + tx.amount, 0);
+  };
 
   return (
-    <TransactionsContext.Provider value={{ transactions, addTransaction, updateTransaction, deleteTransaction }}>
+    <TransactionsContext.Provider value={{ 
+      transactions, 
+      addTransaction, 
+      updateTransaction, 
+      deleteTransaction,
+      getTotalSpendingByType,
+      getTotalBalance
+    }}>
       {children}
     </TransactionsContext.Provider>
   );

@@ -37,6 +37,8 @@ export default function TransactionsPage() {
 
   const expenses = filteredTransactions.filter((tx) => tx.amount < 0);
   const income = filteredTransactions.filter((tx) => tx.amount > 0);
+  const needs = filteredTransactions.filter((tx) => tx.type === 'need');
+  const wants = filteredTransactions.filter((tx) => tx.type === 'want');
 
   const renderTransactionsList = (transactions: typeof allTransactions) => {
     if (transactions.length === 0) {
@@ -121,6 +123,8 @@ export default function TransactionsPage() {
           <TabsTrigger value="all">All</TabsTrigger>
           <TabsTrigger value="expenses">Expenses</TabsTrigger>
           <TabsTrigger value="income">Income</TabsTrigger>
+          <TabsTrigger value="needs">Needs</TabsTrigger>
+          <TabsTrigger value="wants">Wants</TabsTrigger>
         </TabsList>
         <TabsContent value="all">
           {renderTransactionsList(filteredTransactions)}
@@ -130,6 +134,12 @@ export default function TransactionsPage() {
         </TabsContent>
         <TabsContent value="income">
           {renderTransactionsList(income)}
+        </TabsContent>
+        <TabsContent value="needs">
+          {renderTransactionsList(needs)}
+        </TabsContent>
+        <TabsContent value="wants">
+          {renderTransactionsList(wants)}
         </TabsContent>
       </Tabs>
       
