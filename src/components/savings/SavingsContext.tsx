@@ -9,7 +9,7 @@ type SavingsContextType = {
   addGoal: (goal: Omit<SavingsGoal, "id" | "completed">) => void;
   updateGoal: (id: string, goal: Partial<SavingsGoal>) => void;
   deleteGoal: (id: string) => void;
-  addFunds: (id: string, amount: number) => void;
+  addFunds: (id: string, amount: number, isRazorpay?: boolean) => void;
 };
 
 const SavingsContext = createContext<SavingsContextType | undefined>(undefined);
@@ -70,7 +70,7 @@ export const SavingsProvider: React.FC<{ children: React.ReactNode }> = ({ child
     setGoals(prev => prev.filter(goal => goal.id !== id));
   };
 
-  const addFunds = (id: string, amount: number) => {
+  const addFunds = (id: string, amount: number, isRazorpay: boolean = false) => {
     setGoals(prev => 
       prev.map(goal => {
         if (goal.id === id) {
@@ -119,9 +119,9 @@ export const SavingsProvider: React.FC<{ children: React.ReactNode }> = ({ child
             }, 300);
           }
           
-          // Handle transaction recording separately - removing dependency on TransactionsContext
+          // Handle transaction recording and balance update
           try {
-            // Create a simple record of the savings transaction in localStorage
+            // Create a record of the savings transaction in localStorage
             const savingsTransactions = JSON.parse(localStorage.getItem('savingsTransactions') || '[]');
             savingsTransactions.push({
               id: Date.now().toString(),
@@ -131,6 +131,25 @@ export const SavingsProvider: React.FC<{ children: React.ReactNode }> = ({ child
               date: new Date().toISOString()
             });
             localStorage.setItem('savingsTransactions', JSON.stringify(savingsTransactions));
+            
+            // If this is not a Razorpay payment, deduct from current balance by creating a transaction
+            if (!isRazorpay) {
+              // Get current transactions
+              const transactions = JSON.parse(localStorage.getItem('transactions') || '[]');
+              
+              // Add transaction for funds moved to savings goal
+              transactions.unshift({
+                id: `savings-${Date.now()}`,
+                description: `Funds added to "${goal.title}" savings goal`,
+                amount: -amount,  // Negative amount as it's deducted from balance
+                category: 'personal',
+                type: 'need',  // Saving is considered a need
+                date: new Date().toISOString()
+              });
+              
+              // Save updated transactions
+              localStorage.setItem('transactions', JSON.stringify(transactions));
+            }
           } catch (error) {
             console.error('Error recording savings transaction:', error);
           }

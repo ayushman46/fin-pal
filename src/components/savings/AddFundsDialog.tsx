@@ -13,7 +13,7 @@ type AddFundsDialogProps = {
   goal: SavingsGoal | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onAddFunds: (id: string, amount: number) => void;
+  onAddFunds: (id: string, amount: number, isRazorpay?: boolean) => void;
 };
 
 export function AddFundsDialog({ goal, open, onOpenChange, onAddFunds }: AddFundsDialogProps) {
@@ -37,12 +37,12 @@ export function AddFundsDialog({ goal, open, onOpenChange, onAddFunds }: AddFund
       return;
     }
     
-    // Manual addition of funds
-    onAddFunds(goal.id, parsedAmount);
+    // Manual addition of funds (not using Razorpay)
+    onAddFunds(goal.id, parsedAmount, false);
     setAmount("");
     onOpenChange(false);
     
-    toast.success(`Added ${parsedAmount.toFixed(2)} to your goal!`);
+    toast.success(`Added ₹${parsedAmount.toFixed(0)} to your goal!`);
   };
 
   const handlePaymentSuccess = (paymentId: string) => {
@@ -55,12 +55,13 @@ export function AddFundsDialog({ goal, open, onOpenChange, onAddFunds }: AddFund
       return;
     }
     
-    onAddFunds(goal.id, parsedAmount);
+    // Add funds with Razorpay flag set to true
+    onAddFunds(goal.id, parsedAmount, true);
     setAmount("");
     setUseRazorpay(false);
     onOpenChange(false);
     
-    toast.success(`Added ${parsedAmount.toFixed(2)} to your goal via Razorpay!`);
+    toast.success(`Added ₹${parsedAmount.toFixed(0)} to your goal via Razorpay!`);
   };
 
   if (!goal) return null;
@@ -122,6 +123,12 @@ export function AddFundsDialog({ goal, open, onOpenChange, onAddFunds }: AddFund
                 Razorpay
               </Button>
             </div>
+            
+            {!useRazorpay && (
+              <p className="text-xs text-muted-foreground mt-1">
+                Manual funding will deduct from your current balance.
+              </p>
+            )}
           </div>
           
           <div className="space-y-1">
@@ -148,7 +155,7 @@ export function AddFundsDialog({ goal, open, onOpenChange, onAddFunds }: AddFund
                 Pay with Razorpay
               </RazorpayPaymentButton>
             ) : (
-              <Button type="submit">Add Funds</Button>
+              <Button type="submit">Add Funds from Balance</Button>
             )}
           </DialogFooter>
         </form>
