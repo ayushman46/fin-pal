@@ -1,8 +1,8 @@
+
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { SavingsGoal } from './AddGoalDialog';
 import { mockSavingsGoals } from '@/lib/data';
 import { toast } from 'sonner';
-import { useTransactions } from '@/components/transactions/TransactionsContext';
 
 type SavingsContextType = {
   goals: SavingsGoal[];
@@ -27,8 +27,6 @@ export const SavingsProvider: React.FC<{ children: React.ReactNode }> = ({ child
     const savedGoals = localStorage.getItem('savingsGoals');
     return savedGoals ? JSON.parse(savedGoals) : mockSavingsGoals;
   });
-  
-  const { transactions, addTransaction } = useTransactions();
 
   useEffect(() => {
     localStorage.setItem('savingsGoals', JSON.stringify(goals));
@@ -121,13 +119,21 @@ export const SavingsProvider: React.FC<{ children: React.ReactNode }> = ({ child
             }, 300);
           }
           
-          // Add a savings transaction to keep track of balance
-          addTransaction({
-            description: `Funds added to ${goal.title}`,
-            amount: -amount,
-            category: 'personal',
-            type: 'expense'
-          });
+          // Handle transaction recording separately - removing dependency on TransactionsContext
+          try {
+            // Create a simple record of the savings transaction in localStorage
+            const savingsTransactions = JSON.parse(localStorage.getItem('savingsTransactions') || '[]');
+            savingsTransactions.push({
+              id: Date.now().toString(),
+              goalId: id,
+              goalName: goal.title,
+              amount: amount,
+              date: new Date().toISOString()
+            });
+            localStorage.setItem('savingsTransactions', JSON.stringify(savingsTransactions));
+          } catch (error) {
+            console.error('Error recording savings transaction:', error);
+          }
           
           return { 
             ...goal, 

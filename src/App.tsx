@@ -48,14 +48,13 @@ const App = () => {
             <BrowserRouter>
               <Routes>
                 <Route path="/login" element={<LoginPage />} />
-                {/* The Index component doesn't need TransactionsProvider */}
                 <Route path="/" element={<Index />} />
                 <Route element={
-                  <SavingsProvider>
-                    <TransactionsProvider>
+                  <TransactionsProvider>
+                    <SavingsProvider>
                       <AppLayout />
-                    </TransactionsProvider>
-                  </SavingsProvider>
+                    </SavingsProvider>
+                  </TransactionsProvider>
                 }>
                   <Route path="dashboard" element={<DashboardPage />} />
                   <Route path="transactions" element={<TransactionsPage />} />
