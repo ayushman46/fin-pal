@@ -6,6 +6,9 @@ export interface User {
   name: string;
   email: string;
   avatar?: string;
+  premium?: boolean;
+  phone?: string;
+  bio?: string;
 }
 
 // Transaction types
@@ -278,13 +281,28 @@ export function getSavingsProgress(goal: SavingsGoal): number {
 export const authService = {
   login: (email: string, password: string): Promise<User> => {
     return new Promise((resolve, reject) => {
-      // In a real app, we would validate against a backend
+      // Get registered users from local storage
+      const registeredUsers = JSON.parse(localStorage.getItem('registeredUsers') || '[]');
+      
+      // Find the user with matching credentials
+      const foundUser = registeredUsers.find((user: any) => 
+        user.email === email && user.password === password
+      );
+      
+      // Special case for demo account
       if (email === 'demo@example.com' && password === 'password') {
         const userData = {
           ...mockUser,
           email: email,
-          name: 'Demo User',  // Set a default name for demo users
+          name: 'Demo User',
         };
+        setTimeout(() => resolve(userData), 800);
+        return;
+      }
+      
+      if (foundUser) {
+        // Remove password before returning user data
+        const { password, ...userData } = foundUser;
         setTimeout(() => resolve(userData), 800);
       } else {
         setTimeout(() => reject(new Error('Invalid email or password')), 800);
@@ -293,14 +311,35 @@ export const authService = {
   },
   
   register: (name: string, email: string, password: string): Promise<User> => {
-    return new Promise((resolve) => {
-      // In a real app, this would create a new user in the database
-      const userData = {
-        ...mockUser, 
-        name, 
+    return new Promise((resolve, reject) => {
+      // Get existing registered users
+      const registeredUsers = JSON.parse(localStorage.getItem('registeredUsers') || '[]');
+      
+      // Check if user already exists
+      if (registeredUsers.some((user: any) => user.email === email)) {
+        reject(new Error('User with this email already exists'));
+        return;
+      }
+      
+      // Create a new user
+      const newUser = {
+        id: 'user-' + Date.now(),
+        name,
         email,
-        avatar: `https://i.pravatar.cc/150?img=${Math.floor(Math.random() * 70)}`
+        password, // In a real app, this would be hashed
+        avatar: `https://i.pravatar.cc/150?img=${Math.floor(Math.random() * 70)}`,
+        premium: false,
+        phone: '',
+        bio: ''
       };
+      
+      // Add the new user to the registered users
+      registeredUsers.push(newUser);
+      localStorage.setItem('registeredUsers', JSON.stringify(registeredUsers));
+      
+      // Create a copy of the user without the password for the return value
+      const { password: _, ...userData } = newUser;
+      
       setTimeout(() => resolve(userData), 800);
     });
   },

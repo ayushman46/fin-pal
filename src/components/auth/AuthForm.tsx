@@ -20,53 +20,117 @@ export function AuthForm() {
   const [formData, setFormData] = useState({
     name: "",
     email: "demo@example.com", // Prefill demo credentials
-    password: "password",       // Prefill demo password
+    password: "password",      // Prefill demo password
   });
 
   const toggleMode = () => {
     setMode(mode === "login" ? "register" : "login");
+    // Reset form errors when toggling modes
+    setErrors({
+      email: "",
+      password: "",
+      name: "",
+      general: "",
+    });
+  };
+
+  const [errors, setErrors] = useState({
+    email: "",
+    password: "",
+    name: "",
+    general: "",
+  });
+
+  const validateForm = () => {
+    let isValid = true;
+    const newErrors = {
+      email: "",
+      password: "",
+      name: "",
+      general: "",
+    };
+
+    // Email validation
+    if (!formData.email) {
+      newErrors.email = "Email is required";
+      isValid = false;
+    } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
+      newErrors.email = "Email is invalid";
+      isValid = false;
+    }
+
+    // Password validation
+    if (!formData.password) {
+      newErrors.password = "Password is required";
+      isValid = false;
+    } else if (formData.password.length < 6) {
+      newErrors.password = "Password must be at least 6 characters";
+      isValid = false;
+    }
+
+    // Name validation (only for registration)
+    if (mode === "register" && !formData.name) {
+      newErrors.name = "Name is required";
+      isValid = false;
+    }
+
+    setErrors(newErrors);
+    return isValid;
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
+    
+    // Clear specific field error when user types
+    setErrors(prev => ({
+      ...prev,
+      [name]: "",
+      general: ""
+    }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!validateForm()) {
+      return;
+    }
+    
     setIsLoading(true);
 
     try {
       let userData;
+      
       if (mode === "login") {
         userData = await authService.login(formData.email, formData.password);
-        toast.success("Login successful!");
-      } else {
-        userData = await authService.register(formData.name, formData.email, formData.password);
-        toast.success("Account created successfully!");
-      }
-      
-      // Update user context with login details
-      updateUser(userData);
-      
-      // Store auth token
-      localStorage.setItem('authToken', 'demo-token-' + Date.now());
-      navigate("/dashboard");
-    } catch (error) {
-      // Try to register if login fails with demo credentials
-      if (mode === "login") {
-        try {
-          const userData = await authService.register("Demo User", formData.email, formData.password);
+        
+        if (userData) {
+          // Update user context with login details
           updateUser(userData);
+          
+          // Store auth token
           localStorage.setItem('authToken', 'demo-token-' + Date.now());
+          toast.success("Login successful!");
           navigate("/dashboard");
-          toast.success("New account created and logged in!");
-        } catch (registerError) {
-          toast.error(registerError instanceof Error ? registerError.message : "Authentication failed");
         }
       } else {
-        toast.error(error instanceof Error ? error.message : "Authentication failed");
+        userData = await authService.register(formData.name, formData.email, formData.password);
+        
+        if (userData) {
+          // Update user context with login details
+          updateUser(userData);
+          
+          // Store auth token
+          localStorage.setItem('authToken', 'demo-token-' + Date.now());
+          toast.success("Account created successfully!");
+          navigate("/dashboard");
+        }
       }
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : "Authentication failed";
+      setErrors(prev => ({ ...prev, general: errorMessage }));
+      toast.error(errorMessage);
     } finally {
       setIsLoading(false);
     }
@@ -94,7 +158,9 @@ export function AuthForm() {
                 required
                 value={formData.name}
                 onChange={handleChange}
+                className={errors.name ? "border-destructive" : ""}
               />
+              {errors.name && <p className="text-xs text-destructive">{errors.name}</p>}
             </div>
           )}
 
@@ -108,7 +174,9 @@ export function AuthForm() {
               required
               value={formData.email}
               onChange={handleChange}
+              className={errors.email ? "border-destructive" : ""}
             />
+            {errors.email && <p className="text-xs text-destructive">{errors.email}</p>}
           </div>
 
           <div className="space-y-2">
@@ -120,8 +188,16 @@ export function AuthForm() {
               required
               value={formData.password}
               onChange={handleChange}
+              className={errors.password ? "border-destructive" : ""}
             />
+            {errors.password && <p className="text-xs text-destructive">{errors.password}</p>}
           </div>
+
+          {errors.general && (
+            <div className="bg-destructive/10 text-destructive text-sm p-3 rounded-md">
+              {errors.general}
+            </div>
+          )}
         </CardContent>
         <CardFooter className="flex flex-col space-y-4">
           <Button type="submit" className="w-full" disabled={isLoading}>
