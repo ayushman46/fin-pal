@@ -42,30 +42,33 @@ const App = () => {
     <QueryClientProvider client={queryClient}>
       <ThemeProvider defaultTheme="dark">
         <UserProvider>
-          <SavingsProvider>
-            <TransactionsProvider>
-              <TooltipProvider>
-                <Toaster />
-                <Sonner />
-                <BrowserRouter>
-                  <Routes>
-                    <Route path="/login" element={<LoginPage />} />
-                    <Route path="/" element={<Index />} />
-                    <Route element={<AppLayout />}>
-                      <Route path="dashboard" element={<DashboardPage />} />
-                      <Route path="transactions" element={<TransactionsPage />} />
-                      <Route path="savings" element={<SavingsPage />} />
-                      <Route path="insights" element={<InsightsPage />} />
-                      <Route path="chat" element={<ChatPage />} />
-                      <Route path="settings" element={<SettingsPage />} />
-                      <Route path="profile" element={<ProfilePage />} />
-                    </Route>
-                    <Route path="*" element={<NotFound />} />
-                  </Routes>
-                </BrowserRouter>
-              </TooltipProvider>
-            </TransactionsProvider>
-          </SavingsProvider>
+          <TooltipProvider>
+            <Toaster />
+            <Sonner />
+            <BrowserRouter>
+              <Routes>
+                <Route path="/login" element={<LoginPage />} />
+                {/* The Index component doesn't need TransactionsProvider */}
+                <Route path="/" element={<Index />} />
+                <Route element={
+                  <SavingsProvider>
+                    <TransactionsProvider>
+                      <AppLayout />
+                    </TransactionsProvider>
+                  </SavingsProvider>
+                }>
+                  <Route path="dashboard" element={<DashboardPage />} />
+                  <Route path="transactions" element={<TransactionsPage />} />
+                  <Route path="savings" element={<SavingsPage />} />
+                  <Route path="insights" element={<InsightsPage />} />
+                  <Route path="chat" element={<ChatPage />} />
+                  <Route path="settings" element={<SettingsPage />} />
+                  <Route path="profile" element={<ProfilePage />} />
+                </Route>
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </BrowserRouter>
+          </TooltipProvider>
         </UserProvider>
       </ThemeProvider>
     </QueryClientProvider>
